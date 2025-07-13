@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Flash USDT Demo</title>
+<script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.min.js"></script>
+<style>
+  body { font-family: Arial, sans-serif; max-width: 600px; margin: 20px auto; }
+  button { padding: 10px 20px; font-size: 16px; margin: 5px; }
+  #status { margin-top: 20px; }
+</style>
+</head>
+<body>
+<h2>Flash USDT Demo DApp</h2>
+<button id="connectBtn">Connect Wallet</button>
+<button id="mintBtn" disabled>Mint 500,000 Flash USDT</button>
+<button id="checkBalanceBtn" disabled>Check Balance</button>
+<div id="status"></div>
+
+<script>
+const provider = new ethers.providers.Web3Provider(window.ethereum);
+let signer;
+const contractAddress = "0xYourContractAddressHere"; // เปลี่ยนเป็น address contract จริง
+const abi = [
+  "function mint(address to, uint256 amount) public",
+  "function balanceOf(address account) view returns (uint256)"
+];
+
+let contract;
+
+document.getElementById('connectBtn').onclick = async () => {
+  if (!window.ethereum) {
+    alert('Please install MetaMask!');
+    return;
+  }
+  try {
+    await window.ethereum.request({ method: 'eth_requestAccounts' });
+    signer = provider.getSigner();
+    contract = new ethers.Contract(contractAddress, abi, signer);
+    document.getElementById('status').innerText = 'Wallet connected: ' + await signer.getAddress();
+    document.getElementById('mintBtn').disabled = false;
+    document.getElementById('checkBalanceBtn').disabled = false;
+  } catch (err) {
+    console.error(err);
+    alert('Connection rejected!');
+  }
+};
+
+document.getElementById('mintBtn').onclick = async () => {
+  try {
+    const address = await signer.getAddress();
+    const tx = await contract.mint(address, ethers.utils.parseUnits("500000", 18));
+    document.getElementById('status').innerText = 'Mint transaction sent: ' + tx.hash;
+    await tx.wait();
+    document.getElementById('status').innerText = 'Mint successful!';
+  } catch (err) {
+    console.error(err);
+    alert('Mint failed!');
+  }
+};
+
+document.getElementById('checkBalanceBtn').onclick = async () => {
+  try {
+    const address = await signer.getAddress();
+    const balance = await contract.balanceOf(address);
+    const balanceFormatted = ethers.utils.formatUnits(balance, 18);
+    document.getElementById('status').innerText = 'Balance: ' + balanceFormatted + ' Flash USDT';
+  } catch (err) {
+    console.error(err);
+    alert('Failed to get balance!');
+  }
+};
+</script>
+</body>
+</html>
