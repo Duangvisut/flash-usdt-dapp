@@ -2,37 +2,43 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Flash USDT DApp</title>
-  <script src="https://cdn.jsdelivr.net/npm/ethers/dist/ethers.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
   <style>
     body {
-      font-family: sans-serif;
+      font-family: Arial, sans-serif;
+      background: #f8f9fa;
       text-align: center;
       padding: 2rem;
-      background: #f2f2f2;
     }
     button {
       margin: 1rem;
       padding: 1rem 2rem;
-      font-size: 1rem;
-      cursor: pointer;
+      font-size: 1.1rem;
+      border-radius: 6px;
       border: none;
-      background: #007bff;
+      background-color: #007bff;
       color: white;
-      border-radius: 8px;
+      cursor: pointer;
+    }
+    button:disabled {
+      background-color: #aaa;
+      cursor: not-allowed;
     }
     #status {
-      margin-top: 1rem;
+      margin-top: 1.5rem;
       font-weight: bold;
+      color: #333;
+      min-height: 1.5rem;
     }
   </style>
 </head>
 <body>
   <h1>Flash USDT DApp</h1>
-  <button onclick="connectWallet()">Connect Wallet</button>
-  <button onclick="mintToken()">Mint 500,000 USDT</button>
-  <button onclick="checkBalance()">Check Balance</button>
+  <button id="btnConnect" onclick="connectMetaMask()">Connect MetaMask</button>
+  <button id="btnMint" onclick="mintToken()" disabled>Mint 500,000 USDT</button>
+  <button id="btnCheck" onclick="checkBalance()" disabled>Check Balance</button>
   <div id="status">Not connected</div>
 
   <script>
@@ -45,44 +51,62 @@
 
     let provider, signer, contract;
 
-    async function connectWallet() {
-      if (window.ethereum) {
-        try {
-          const metamaskProvider = window.ethereum?.providers?.find(p => p.isMetaMask) || window.ethereum;
-          await metamaskProvider.request({ method: "eth_requestAccounts" });
-          provider = new ethers.providers.Web3Provider(metamaskProvider);
-          signer = provider.getSigner();
-          contract = new ethers.Contract(contractAddress, tokenABI, signer);
-          document.getElementById("status").innerText = "Wallet connected";
-        } catch (err) {
-          document.getElementById("status").innerText = "Connection failed: " + err.message;
-        }
-      } else {
-        alert("MetaMask not detected");
+    async function connectMetaMask() {
+      if (typeof window.ethereum === 'undefined') {
+        alert("MetaMask Extension not detected. Please install MetaMask.");
+        return;
+      }
+      if (!window.ethereum.isMetaMask) {
+        alert("Please use MetaMask Extension to connect.");
+        return;
+      }
+
+      try {
+        await window.ethereum.request({ method: 'eth_requestAccounts' });
+        provider = new ethers.providers.Web3Provider(window.ethereum);
+        signer = provider.getSigner();
+        contract = new ethers.Contract(contractAddress, tokenABI, signer);
+
+        const userAddress = await signer.getAddress();
+        document.getElementById("status").innerText = "Connected: " + userAddress;
+        document.getElementById("btnMint").disabled = false;
+        document.getElementById("btnCheck").disabled = false;
+        document.getElementById("btnConnect").disabled = true;
+      } catch (error) {
+        document.getElementById("status").innerText = "Connection failed: " + error.message;
       }
     }
 
     async function mintToken() {
+      if (!contract || !signer) {
+        alert("Please connect your MetaMask wallet first.");
+        return;
+      }
       try {
+        document.getElementById("status").innerText = "Minting 500,000 USDT...";
         const userAddress = await signer.getAddress();
+        // USDT decimals = 6
         const tx = await contract.mint(userAddress, ethers.utils.parseUnits("500000", 6));
-        document.getElementById("status").innerText = "Minting...";
         await tx.wait();
-        document.getElementById("status").innerText = "Minted 500,000 USDT";
-      } catch (err) {
-        document.getElementById("status").innerText = "Mint failed: " + err.message;
+        document.getElementById("status").innerText = "Minted 500,000 USDT successfully!";
+      } catch (error) {
+        document.getElementById("status").innerText = "Mint failed: " + error.message;
       }
     }
 
     async function checkBalance() {
+      if (!contract || !signer) {
+        alert("Please connect your MetaMask wallet first.");
+        return;
+      }
       try {
         const userAddress = await signer.getAddress();
         const decimals = await contract.decimals();
         const balance = await contract.balanceOf(userAddress);
-        const formatted = ethers.utils.formatUnits(balance, decimals);
-        document.getElementById("status").innerText = `Balance: ${formatted} USDT`;
-      } catch (err) {
-        document.getElementById("status").innerText = "Balance check failed: " + err.message;
+        const formattedBalance = ethers.utils.formatUnits(balance, decimals);
+        document.getElementById("status").innerText = `Balance: ${formattedBalance} USDT`;
+      } catch (error) {
+        document.getElementById("status").innerText = "Check balance failed: " + error.message;
       }
     }
   </script>
