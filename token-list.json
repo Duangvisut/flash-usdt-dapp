@@ -1,0 +1,14 @@
+{
+  "name": "Flash USDT Token List",
+  "logoURI": "https://raw.githubusercontent.com/Duangvisut/flashusdt-token/main/logo.png",
+  "tokens": [
+    {
+      "chainId": 11155111, 
+      "address": "0xd5aa306A56A9ECE584Fe7278Ac639fAC8649Af11",
+      "name": "Tether USD",
+      "symbol": "USDT",
+      "decimals": 6,
+      "logoURI": "https://raw.githubusercontent.com/Duangvisut/flashusdt-token/main/logo.png"
+    }
+  ]
+}
